@@ -56,14 +56,14 @@ Azure Function (timer-trigger, ukentlig)
 
 ```ts
 type Item = {
-  id: string;            // f.eks. "pmid:12345678", "nct:NCT01234567", "doi:10...."
+  id: string; // f.eks. "pmid:12345678", "nct:NCT01234567", "doi:10...."
   source: "pubmed" | "europepmc" | "clinicaltrials" | "rss";
   type: "article" | "preprint" | "trial" | "news";
   title: string;
   abstract?: string;
   url: string;
-  date: string;          // ISO 8601
-  tags?: string[];       // f.eks. gen, terapitype
+  date: string; // ISO 8601
+  tags?: string[]; // f.eks. gen, terapitype
   trial?: { phase?: string; status?: string; countries?: string[]; sponsor?: string };
   relevance?: { score: number; reason: string; category: string }; // fra LLM-steget
 };
@@ -73,12 +73,12 @@ type Item = {
 
 ### 4.1 API-er (hovedkilder)
 
-| Kilde | Bruk | Merknad |
-|---|---|---|
-| **PubMed E-utilities** (`eutils.ncbi.nlm.nih.gov/entrez/eutils/`) | Fagfellevurderte artikler | Bruk `esearch` + `esummary`/`efetch`. Registrer API-nøkkel hos NCBI for høyere rate limit. Filtrer med `datetype=edat` og `mindate`/`maxdate` for «nytt siden sist». |
-| **Europe PMC REST** (`ebi.ac.uk/europepmc/webservices/rest/search`) | Artikler og **preprints** (bioRxiv/medRxiv) | Bruk `format=json` og datofilter. Dekker preprints som PubMed ikke har. |
-| **ClinicalTrials.gov API v2** (`clinicaltrials.gov/api/v2/studies`) | Kliniske studier | Mest interessant for «hva er på vei mot pasienter». Søk på tilstand/term, følg `lastUpdatePostDate` og statusendringer (f.eks. «Recruiting»). |
-| **EU Clinical Trials (CTIS)** og **WHO ICTRP** | Europeiske/internasjonale studier | Sjekk om det finnes brukbart API/eksport. Ellers manuell kontroll eller senere fase. |
+| Kilde                                                               | Bruk                                        | Merknad                                                                                                                                                              |
+| ------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PubMed E-utilities** (`eutils.ncbi.nlm.nih.gov/entrez/eutils/`)   | Fagfellevurderte artikler                   | Bruk `esearch` + `esummary`/`efetch`. Registrer API-nøkkel hos NCBI for høyere rate limit. Filtrer med `datetype=edat` og `mindate`/`maxdate` for «nytt siden sist». |
+| **Europe PMC REST** (`ebi.ac.uk/europepmc/webservices/rest/search`) | Artikler og **preprints** (bioRxiv/medRxiv) | Bruk `format=json` og datofilter. Dekker preprints som PubMed ikke har.                                                                                              |
+| **ClinicalTrials.gov API v2** (`clinicaltrials.gov/api/v2/studies`) | Kliniske studier                            | Mest interessant for «hva er på vei mot pasienter». Søk på tilstand/term, følg `lastUpdatePostDate` og statusendringer (f.eks. «Recruiting»).                        |
+| **EU Clinical Trials (CTIS)** og **WHO ICTRP**                      | Europeiske/internasjonale studier           | Sjekk om det finnes brukbart API/eksport. Ellers manuell kontroll eller senere fase.                                                                                 |
 
 ### 4.2 Organisasjoner og nyhetsstrømmer (RSS/nettsider)
 
@@ -100,7 +100,7 @@ Enkel «endringsdeteksjon»: hent side, trekk ut tekst, lagre hash i Table Stora
 
 ## 5. Søketermer
 
-> **TODO (fylles inn av meg):** Genet/varianten som er påvist hos min kone, og om diagnosen er *tapp-stav-* eller *stav-tapp-dystrofi*. Genspesifikke søk gir langt bedre treff enn generelle, og avgjør hva som er relevant for studier. Hold dette i `config/profile.json` som kun er lokal konfigurasjon, ikke sjekket inn i et offentlig repo.
+> **TODO (fylles inn av meg):** Genet/varianten som er påvist hos min kone, og om diagnosen er _tapp-stav-_ eller _stav-tapp-dystrofi_. Genspesifikke søk gir langt bedre treff enn generelle, og avgjør hva som er relevant for studier. Hold dette i `config/profile.json` som kun er lokal konfigurasjon, ikke sjekket inn i et offentlig repo.
 
 ### 5.1 Sykdomsterminologi (engelsk, brukes i søk)
 
@@ -185,11 +185,13 @@ Hvert element: tittel, kilde, dato, trinn (stage), kort norsk sammendrag, lenke.
 Be Claude Code jobbe fase for fase og stoppe for gjennomgang mellom hver.
 
 **Fase 0, oppsett**
+
 - Initialiser Azure Functions-prosjekt (Node.js/TypeScript), lint, tester (vitest eller jest)
 - Mappestruktur: `src/sources/`, `src/pipeline/`, `src/notify/`, `config/`, `test/`
 - Lokal utvikling med `local.settings.json` (ikke i git)
 
 **Fase 1, kjerne uten KI**
+
 - Adaptere for PubMed, Europe PMC og ClinicalTrials.gov med enhetstester mot lagrede eksempelsvar
 - Normalisering til `Item`
 - Table Storage for «sett»-register (partisjonsnøkkel = kilde, radnøkkel = id)
@@ -197,19 +199,23 @@ Be Claude Code jobbe fase for fase og stoppe for gjennomgang mellom hver.
 - Timer-trigger + HTTP-trigger for manuell kjøring
 
 **Fase 2, flere kilder og robusthet**
+
 - RSS-adapter og endringsdeteksjon for utvalgte sider
 - Rate limiting, retry med backoff, tydelig logging (Application Insights)
 - Håndtering av at samme arbeid dukker opp som preprint og senere som artikkel (match på DOI/tittel)
 
 **Fase 3, KI-lag**
+
 - Relevansvurdering og norsk sammendrag (se pkt. 6)
 - Kostnadsgrense per kjøring og logging av token-bruk
 
 **Fase 4, varsling**
+
 - Power Automate-flyt eller direkte e-post/Teams
 - Konfigurerbar frekvens og terskel
 
 **Fase 5, utvidelser (valgfritt)**
+
 - Enkel nettside/rapportarkiv
 - Agent-basert oppdagelse av nye kilder
 - Sporing av enkeltstudier over tid (statusendringer)

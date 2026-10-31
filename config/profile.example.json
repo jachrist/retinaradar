@@ -1,0 +1,6 @@
+{
+  "$comment": "Kopier til config/profile.json (som ikke sjekkes inn) og fyll inn. Kun gensymbol og diagnose – ingen personopplysninger.",
+  "genes": ["GENSYMBOL"],
+  "diagnosis": "cone-rod dystrophy",
+  "regions": ["NO", "SE", "DK", "FI", "EU"]
+}

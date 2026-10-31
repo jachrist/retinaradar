@@ -1,0 +1,37 @@
+{
+  "$comment": "Søkestrenger per kilde. {GENE} erstattes med gener fra config/profile.json; spørringer med {GENE} hoppes over hvis profilen mangler. Parametere verifiseres mot offisiell API-dokumentasjon i fase 1.",
+  "queries": [
+    {
+      "id": "pubmed-cord-therapy",
+      "source": "pubmed",
+      "priority": 1,
+      "enabled": true,
+      "query": "(\"cone-rod dystrophy\"[tiab] OR \"Cone-Rod Dystrophies\"[MeSH] OR \"inherited retinal dystrophy\"[tiab]) AND (\"gene therapy\"[tiab] OR CRISPR[tiab] OR \"gene editing\"[tiab] OR \"retinal prosthesis\"[tiab] OR optogenetic*[tiab])"
+    },
+    {
+      "id": "pubmed-gene",
+      "source": "pubmed",
+      "priority": 1,
+      "enabled": true,
+      "query": "({GENE}[tiab]) AND (retina*[tiab] OR dystrophy[tiab])"
+    },
+    {
+      "id": "europepmc-cord-therapy",
+      "source": "europepmc",
+      "priority": 2,
+      "enabled": true,
+      "query": "(\"cone-rod dystrophy\" OR \"inherited retinal dystrophy\" OR \"inherited retinal disease\") AND (\"gene therapy\" OR CRISPR OR \"gene editing\" OR \"retinal prosthesis\" OR optogenetic*)"
+    },
+    {
+      "id": "clinicaltrials-ird",
+      "source": "clinicaltrials",
+      "priority": 1,
+      "enabled": true,
+      "query": {
+        "cond": "\"cone-rod dystrophy\" OR \"retinal dystrophy\" OR \"inherited retinal disease\"",
+        "term": "\"gene therapy\" OR CRISPR OR prosthesis OR optogenetic",
+        "overallStatus": ["RECRUITING", "NOT_YET_RECRUITING", "ACTIVE_NOT_RECRUITING"]
+      }
+    }
+  ]
+}
