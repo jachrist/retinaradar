@@ -19,19 +19,19 @@
 
 ## Fase 1 – kjerne uten KI (implementert, delvis verifisert)
 
-| Del                                     | Fil(er)                         | Status                                    |
-| --------------------------------------- | ------------------------------- | ----------------------------------------- |
-| Konfig + validering, `{GENE}`-utvidelse | `src/config/`                   | ✅ testet                                 |
-| PubMed (esearch → efetch XML)           | `src/sources/pubmed.ts`         | ⚠️ URL-er testet, ikke kjørt mot live API |
-| Europe PMC (search, cursorMark)         | `src/sources/europepmc.ts`      | ⚠️ URL-er testet, ikke kjørt mot live API |
-| ClinicalTrials.gov v2 (/studies)        | `src/sources/clinicaltrials.ts` | ⚠️ URL-er testet, ikke kjørt mot live API |
-| Sammenslåing på tvers av kilder         | `src/pipeline/dedupe.ts`        | ✅ testet                                 |
-| «Sett»-register + siste kjøring         | `src/storage/`                  | ✅ testet, også mot Azurite               |
-| Pipeline (vindu, idempotens, feil)      | `src/pipeline/run.ts`           | ✅ testet                                 |
-| Varsel (norsk tekst + HTML)             | `src/notify/`                   | ✅ testet                                 |
-| SMTP (Gmail)                            | `src/notify/notifier.ts`        | ⚠️ ikke testet mot ekte SMTP              |
-| Timer- og HTTP-trigger                  | `src/functions/`                | ✅ enhetstestet, `func start` ikke kjørt  |
-| Lokal CLI                               | `src/cli.ts`                    | ✅ kjørt mot Azurite                      |
+| Del                                     | Fil(er)                         | Status                                                           |
+| --------------------------------------- | ------------------------------- | ---------------------------------------------------------------- |
+| Konfig + validering, `{GENE}`-utvidelse | `src/config/`                   | ✅ testet                                                        |
+| PubMed (esearch → efetch XML)           | `src/sources/pubmed.ts`         | ✅ kjørt mot live API, tester mot ekte svar                      |
+| Europe PMC (search, cursorMark)         | `src/sources/europepmc.ts`      | ⚠️ ikke verifisert – API-et svarte 503 (nede hos dem)            |
+| ClinicalTrials.gov v2 (/studies)        | `src/sources/clinicaltrials.ts` | ✅ verifisert mot OpenAPI-spec og live API, tester mot ekte svar |
+| Sammenslåing på tvers av kilder         | `src/pipeline/dedupe.ts`        | ✅ testet                                                        |
+| «Sett»-register + siste kjøring         | `src/storage/`                  | ✅ testet, også mot Azurite                                      |
+| Pipeline (vindu, idempotens, feil)      | `src/pipeline/run.ts`           | ✅ testet                                                        |
+| Varsel (norsk tekst + HTML)             | `src/notify/`                   | ✅ testet                                                        |
+| SMTP (Gmail)                            | `src/notify/notifier.ts`        | ⚠️ ikke testet mot ekte SMTP                                     |
+| Timer- og HTTP-trigger                  | `src/functions/`                | ✅ enhetstestet, `func start` ikke kjørt                         |
+| Lokal CLI                               | `src/cli.ts`                    | ✅ kjørt mot Azurite og live API (2. kjøring: 0 nye)             |
 
 ### Hvordan det virker
 
@@ -48,15 +48,18 @@
 - **Profilen kan også gis som miljøvariabelen `PROFILE_JSON`**, slik at den ikke må deployes som fil fra et offentlig repo.
 - **Table Storage bruker foreløpig tilkoblingsstreng.** Managed identity kommer med Azure-oppsettet.
 
-## Åpne punkter (krever nettverkstilgang til API-ene)
+## Verifisering mot live API (1.11.2026)
 
-Utviklingsmiljøet fikk ikke nå `eutils.ncbi.nlm.nih.gov`, `www.ebi.ac.uk` eller `clinicaltrials.gov`, og heller ikke dokumentasjonssidene deres. Følgende antakelser må derfor verifiseres:
+- **PubMed:** Datofilteret virker (`datetype=edat`, `mindate`/`maxdate` som `YYYY/MM/DD`). For «cone-rod dystrophy»[tiab] gir det 1021 treff uten filter, 4 i oktober og 1 siste uke. Parsing av efetch-XML gir abstract med seksjonsnavn, DOI og entrez-dato.
+- **ClinicalTrials.gov:** Alle parametere finnes i OpenAPI-spesifikasjonen (`/api/oas/v2`). `filter.overallStatus` tar komma- eller pipe-separert liste, `pageToken` settes fra `nextPageToken`, og `phases` har verdiene `NA`, `EARLY_PHASE1` og `PHASE1`–`PHASE4`. `AREA[LastUpdatePostDate]RANGE[...]` snevrer inn som forventet (395 → 23 → 9 treff). Tekstfeltene er Markdown, og escaping som `\-` fjernes.
+- **Søkejustering:** `query.cond` utvides med synonymer. «macular dystrophy» traff derfor AMD, diabetisk makulaødem m.m. (59 treff på en måned). Stargardt-søket er nå bare `Stargardt` (6 relevante treff).
 
-1. **PubMed:** `datetype=edat` med `mindate`/`maxdate` i formatet `YYYY/MM/DD`; strukturen i efetch-XML (entrez-dato i `PubmedData/History`).
-2. **Europe PMC:** `FIRST_PDATE:[YYYY-MM-DD TO YYYY-MM-DD]` som datofilter. Det kan finnes et bedre felt for indekseringsdato. `resultType=core` skal gi `abstractText`, og `nextCursorMark` brukes til paginering.
-3. **ClinicalTrials.gov:** `filter.advanced=AREA[LastUpdatePostDate]RANGE[YYYY-MM-DD,YYYY-MM-DD]`, `pageToken`/`nextPageToken`, og verdiene i `phases`.
-4. **Parsertester mot ekte svar:** Kjør `npm run fixtures` (lagrer svar i `test/fixtures/` og skriver ut hva parserne fant), og skriv deretter tester mot de lagrede filene.
-5. **SMTP mot Gmail** og **`func start`** må prøves lokalt.
+## Åpne punkter
+
+1. **Europe PMC:** API-et svarte 503 «temporarily unavailable» på alle forespørsler, også de enkleste. Kjør `npm run fixtures` når det er oppe igjen. Da lagres `europepmc-search.json`, og fixture-testen for Europe PMC aktiveres automatisk. Sjekk spesielt at `FIRST_PDATE`-filteret og `resultType=core` virker som antatt.
+2. **SMTP mot Gmail** og **`func start`** må prøves lokalt.
+3. **Retry med backoff** (fase 2) ville gjort 503-feil som dette mindre synlige.
+4. Merk: I Claude-skymiljøet må Node kjøres med `NODE_USE_ENV_PROXY=1` for at `fetch` skal gå via proxyen. Lokalt og i Azure trengs ikke dette.
 
 ## Kom i gang lokalt
 
