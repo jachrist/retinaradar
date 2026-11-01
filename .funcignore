@@ -10,3 +10,6 @@ local.settings*.json
 tsconfig*.json
 vitest.config.ts
 eslint.config.js
+config/profile.json
+out/
+.azurite/

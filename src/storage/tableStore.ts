@@ -1,4 +1,5 @@
 import { RestError, TableClient } from "@azure/data-tables";
+import { DefaultAzureCredential } from "@azure/identity";
 import { toKeys } from "./keys.js";
 import type { SeenRecord, SeenStore } from "./seenStore.js";
 
@@ -24,9 +25,14 @@ function isNotFound(err: unknown): boolean {
   return err instanceof RestError && err.statusCode === 404;
 }
 
+/** Tilkobling: tilkoblingsstreng (Azurite lokalt) eller konto-URL med managed identity. */
+export type TableTarget = { connectionString: string } | { accountUrl: string };
+
 /**
- * «Sett»-register i Azure Table Storage. Bruker tilkoblingsstreng (Azurite lokalt:
- * "UseDevelopmentStorage=true"). Managed identity legges til når vi deployer.
+ * «Sett»-register i Azure Table Storage. Lokalt brukes tilkoblingsstreng
+ * ("UseDevelopmentStorage=true" for Azurite). I Azure brukes konto-URL
+ * (https://<konto>.table.core.windows.net) og DefaultAzureCredential, dvs. funksjonsappens
+ * managed identity, som trenger rollen «Storage Table Data Contributor».
  */
 export class TableSeenStore implements SeenStore {
   private constructor(
@@ -35,13 +41,18 @@ export class TableSeenStore implements SeenStore {
   ) {}
 
   /** @param tablePrefix Tabellnavn blir `<prefix>Seen` og `<prefix>State` (kun bokstaver/tall). */
-  static async create(
-    connectionString: string,
-    tablePrefix = DEFAULT_PREFIX,
-  ): Promise<TableSeenStore> {
-    const opts = { allowInsecureConnection: connectionString.includes("UseDevelopmentStorage") };
-    const seen = TableClient.fromConnectionString(connectionString, `${tablePrefix}Seen`, opts);
-    const state = TableClient.fromConnectionString(connectionString, `${tablePrefix}State`, opts);
+  static async create(target: TableTarget, tablePrefix = DEFAULT_PREFIX): Promise<TableSeenStore> {
+    const client = (table: string): TableClient => {
+      if ("accountUrl" in target) {
+        return new TableClient(target.accountUrl, table, new DefaultAzureCredential());
+      }
+      const allowInsecureConnection = target.connectionString.includes("UseDevelopmentStorage");
+      return TableClient.fromConnectionString(target.connectionString, table, {
+        allowInsecureConnection,
+      });
+    };
+    const seen = client(`${tablePrefix}Seen`);
+    const state = client(`${tablePrefix}State`);
     await Promise.all([seen.createTable(), state.createTable()]);
     return new TableSeenStore(seen, state);
   }

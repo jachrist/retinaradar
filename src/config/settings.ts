@@ -11,6 +11,8 @@ export interface SmtpSettings {
 
 export interface Settings {
   tableConnection: string | undefined;
+  /** https://<konto>.table.core.windows.net – brukes med managed identity i Azure. */
+  tableAccountUrl: string | undefined;
   ncbiApiKey: string | undefined;
   ncbiEmail: string | undefined;
   smtp: SmtpSettings | undefined;
@@ -62,6 +64,7 @@ function readSmtp(env: NodeJS.ProcessEnv): SmtpSettings | undefined {
 export function loadSettings(env: NodeJS.ProcessEnv = process.env): Settings {
   return {
     tableConnection: opt(env, "TABLE_STORAGE_CONNECTION"),
+    tableAccountUrl: opt(env, "TABLE_STORAGE_ACCOUNT_URL"),
     ncbiApiKey: opt(env, "NCBI_API_KEY"),
     ncbiEmail: opt(env, "NCBI_EMAIL"),
     smtp: readSmtp(env),

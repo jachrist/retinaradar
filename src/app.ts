@@ -36,11 +36,14 @@ export async function runFromEnvironment(o: AppOptions): Promise<RunResult> {
   let store: SeenStore;
   if (o.memoryStore) {
     store = new MemorySeenStore();
+  } else if (settings.tableAccountUrl) {
+    store = await TableSeenStore.create({ accountUrl: settings.tableAccountUrl });
   } else if (settings.tableConnection) {
-    store = await TableSeenStore.create(settings.tableConnection);
+    store = await TableSeenStore.create({ connectionString: settings.tableConnection });
   } else {
     throw new ConfigError(
-      "TABLE_STORAGE_CONNECTION mangler. Bruk Azurite lokalt, eller --memory for en testkjøring.",
+      "Verken TABLE_STORAGE_ACCOUNT_URL eller TABLE_STORAGE_CONNECTION er satt. " +
+        "Bruk Azurite lokalt, eller --memory for en testkjøring.",
     );
   }
 

@@ -9,7 +9,10 @@ const PREFIX = `Test${Date.now()}`;
 
 describe.runIf(process.env.AZURITE_TABLE === "1")("TableSeenStore (Azurite)", () => {
   it("lagrer og henter sett-poster og siste kjøring", async () => {
-    const store = await TableSeenStore.create("UseDevelopmentStorage=true", PREFIX);
+    const store = await TableSeenStore.create(
+      { connectionString: "UseDevelopmentStorage=true" },
+      PREFIX,
+    );
     const id = `doi:10.1101/test.${Date.now()}/x`;
     expect((await store.getMany([id])).size).toBe(0);
 
@@ -32,6 +35,6 @@ describe.runIf(process.env.AZURITE_TABLE === "1")("TableSeenStore (Azurite)", ()
     expect(await store.getLastSuccessfulRun()).toEqual(when);
 
     // createTable skal tåle at tabellene finnes fra før.
-    await TableSeenStore.create("UseDevelopmentStorage=true", PREFIX);
+    await TableSeenStore.create({ connectionString: "UseDevelopmentStorage=true" }, PREFIX);
   });
 });
