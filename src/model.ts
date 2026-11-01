@@ -23,6 +23,8 @@ export interface Item {
   title: string;
   abstract?: string;
   url: string;
+  /** Normalisert DOI (små bokstaver, uten prefiks) når kjent. Brukes til kryss-kilde-matching. */
+  doi?: string;
   /** ISO 8601. */
   date: string;
   tags?: string[];
