@@ -61,7 +61,7 @@
       "priority": 2,
       "enabled": true,
       "query": {
-        "cond": "Stargardt disease OR macular dystrophy",
+        "cond": "Stargardt",
         "overallStatus": [
           "RECRUITING",
           "NOT_YET_RECRUITING",

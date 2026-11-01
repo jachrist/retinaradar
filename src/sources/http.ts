@@ -9,7 +9,9 @@ export class HttpError extends Error {
     readonly url: string,
     body: string,
   ) {
-    super(`HTTP ${status} fra ${redact(url)}: ${body.slice(0, 200)}`);
+    // Kun vert og sti i meldingen (den havner i e-post og logger); hele URL-en ligger i .url.
+    const u = new URL(url);
+    super(`HTTP ${status} fra ${u.host}${u.pathname}: ${body.slice(0, 200)}`);
   }
 }
 

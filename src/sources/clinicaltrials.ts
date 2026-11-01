@@ -61,6 +61,11 @@ export interface CtgovResponse {
   nextPageToken?: string;
 }
 
+/** Tekstfelt fra API-et er Markdown (markupFormat=markdown); fjern escaping som «\\-». */
+export function unescapeMarkdown(text: string | undefined): string | undefined {
+  return text?.replace(/\\([\\`*_{}[\]()#+\-.!>|])/g, "$1");
+}
+
 export function toItem(study: CtgovStudy): Item | undefined {
   const ps = study.protocolSection;
   const nctId = ps?.identificationModule?.nctId;
@@ -76,7 +81,7 @@ export function toItem(study: CtgovStudy): Item | undefined {
   const phases = ps?.designModule?.phases?.filter((p) => p !== "NA") ?? [];
   const sponsor = ps?.sponsorCollaboratorsModule?.leadSponsor?.name;
   const status = ps?.statusModule?.overallStatus;
-  const abstract = cleanText(ps?.descriptionModule?.briefSummary);
+  const abstract = cleanText(unescapeMarkdown(ps?.descriptionModule?.briefSummary));
   const tags = ps?.conditionsModule?.conditions ?? [];
 
   return {

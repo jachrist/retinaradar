@@ -6,7 +6,7 @@ import { redact } from "../src/sources/http.js";
 describe("cleanText", () => {
   it("fjerner tagger og dekoder entiteter", () => {
     expect(cleanText("<i>GUCY2D</i>-related &amp; <sup>2</sup> &#946;-cells\n  ok")).toBe(
-      "GUCY2D -related & 2 β-cells ok",
+      "GUCY2D-related & 2 β-cells ok",
     );
   });
   it("tåler tom input", () => expect(cleanText(undefined)).toBe(""));
@@ -46,12 +46,12 @@ describe("redact", () => {
 });
 
 describe("createHttpClient", () => {
-  it("gir HttpError med status og skjult api_key", async () => {
+  it("gir HttpError med status, uten query (og dermed uten api_key)", async () => {
     const { createHttpClient, HttpError } = await import("../src/sources/http.js");
     const http = createHttpClient(async () => new Response("nope", { status: 429 }));
     const err = await http.getText("https://x.org/a?api_key=S").catch((e: unknown) => e);
     expect(err).toBeInstanceOf(HttpError);
-    expect((err as Error).message).toBe("HTTP 429 fra https://x.org/a?api_key=***: nope");
+    expect((err as Error).message).toBe("HTTP 429 fra x.org/a: nope");
   });
 
   it("gir nettverksfeil med vertsnavn og årsak", async () => {

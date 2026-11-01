@@ -10,19 +10,24 @@ const ENTITIES: Record<string, string> = {
 /** Fjerner HTML/XML-tagger og dekoder vanlige entiteter, normaliserer mellomrom. */
 export function cleanText(input: string | undefined | null): string {
   if (!input) return "";
-  return input
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
-      if (e[0] === "#") {
-        const code = e[1]?.toLowerCase() === "x" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1));
-        return Number.isFinite(code) ? String.fromCodePoint(code) : m;
-      }
-      return ENTITIES[e.toLowerCase()] ?? m;
-    })
-    .replace(/\s+/g, " ")
-    .replace(/\s+([.,;:)])/g, "$1")
-    .replace(/\(\s+/g, "(")
-    .trim();
+  return (
+    input
+      // Inline-formatering (kursiv, sub/sup osv.) fjernes uten mellomrom: <i>GUCY2D</i>-related
+      .replace(/<\/?(i|b|u|em|strong|sub|sup|span|small)(\s[^>]*)?>/gi, "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+        if (e[0] === "#") {
+          const code =
+            e[1]?.toLowerCase() === "x" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1));
+          return Number.isFinite(code) ? String.fromCodePoint(code) : m;
+        }
+        return ENTITIES[e.toLowerCase()] ?? m;
+      })
+      .replace(/\s+/g, " ")
+      .replace(/\s+([.,;:)])/g, "$1")
+      .replace(/\(\s+/g, "(")
+      .trim()
+  );
 }
 
 export function truncate(text: string, max: number): string {
