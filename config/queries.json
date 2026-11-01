@@ -23,6 +23,13 @@
       "query": "(\"cone-rod dystrophy\" OR \"inherited retinal dystrophy\" OR \"inherited retinal disease\") AND (\"gene therapy\" OR CRISPR OR \"gene editing\" OR \"retinal prosthesis\" OR optogenetic*)"
     },
     {
+      "id": "europepmc-gene",
+      "source": "europepmc",
+      "priority": 1,
+      "enabled": true,
+      "query": "\"{GENE}\" AND (retina* OR dystrophy OR Stargardt)"
+    },
+    {
       "id": "clinicaltrials-ird",
       "source": "clinicaltrials",
       "priority": 1,
@@ -31,6 +38,36 @@
         "cond": "\"cone-rod dystrophy\" OR \"retinal dystrophy\" OR \"inherited retinal disease\"",
         "term": "\"gene therapy\" OR CRISPR OR prosthesis OR optogenetic",
         "overallStatus": ["RECRUITING", "NOT_YET_RECRUITING", "ACTIVE_NOT_RECRUITING"]
+      }
+    },
+    {
+      "id": "clinicaltrials-gene",
+      "source": "clinicaltrials",
+      "priority": 1,
+      "enabled": true,
+      "query": {
+        "term": "{GENE}",
+        "overallStatus": [
+          "RECRUITING",
+          "NOT_YET_RECRUITING",
+          "ACTIVE_NOT_RECRUITING",
+          "ENROLLING_BY_INVITATION"
+        ]
+      }
+    },
+    {
+      "id": "clinicaltrials-stargardt",
+      "source": "clinicaltrials",
+      "priority": 2,
+      "enabled": true,
+      "query": {
+        "cond": "Stargardt disease OR macular dystrophy",
+        "overallStatus": [
+          "RECRUITING",
+          "NOT_YET_RECRUITING",
+          "ACTIVE_NOT_RECRUITING",
+          "ENROLLING_BY_INVITATION"
+        ]
       }
     }
   ]
