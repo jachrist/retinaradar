@@ -2,7 +2,7 @@
  * Parsertester mot ekte API-svar lagret med `npm run fixtures`.
  * Fixtures inneholder kun offentlige data (generelle sykdomssøk, ingen profil).
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   toItem as ctToItem,
@@ -13,7 +13,6 @@ import { toItem as epToItem, type EuropePmcResponse } from "../../src/sources/eu
 import { parseEfetchXml, parseEsearch } from "../../src/sources/pubmed.js";
 
 const fixture = (name: string) => readFileSync(`test/fixtures/${name}`, "utf8");
-const has = (name: string) => existsSync(`test/fixtures/${name}`);
 
 describe("PubMed (ekte svar)", () => {
   it("esearch gir antall og PMID-liste", () => {
@@ -87,15 +86,31 @@ describe("ClinicalTrials.gov (ekte svar)", () => {
   });
 });
 
-describe.runIf(has("europepmc-search.json"))("Europe PMC (ekte svar)", () => {
-  it("mapper søkeresultater", () => {
-    const res = JSON.parse(fixture("europepmc-search.json")) as EuropePmcResponse;
-    const items = (res.resultList?.result ?? []).map(epToItem);
+describe("Europe PMC (ekte svar)", () => {
+  const load = (name: string) =>
+    ((JSON.parse(fixture(name)) as EuropePmcResponse).resultList?.result ?? []).map(epToItem);
+
+  it("artikler: PMID-id, ren tekst og dato", () => {
+    const items = load("europepmc-search.json");
     expect(items.length).toBeGreaterThan(0);
     for (const i of items) {
       expect(i?.id).toMatch(/^(pmid|doi|epmc):/);
-      expect(i?.title).not.toMatch(/[<>]/);
       expect(i?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      // Europe PMC sender tagger både rå og HTML-kodet; ingen av delene skal slippe gjennom.
+      expect(i?.title).not.toMatch(/<|&lt;/);
+      expect(i?.abstract ?? "").not.toMatch(/<\/?[a-z]+[ >]|&lt;/i);
+    }
+    expect(items.some((i) => i?.title.includes("UBAP1L gene"))).toBe(true);
+    expect(items.filter((i) => i?.id.startsWith("pmid:")).length).toBeGreaterThan(0);
+  });
+
+  it("preprints: type preprint, DOI-id og lenke til Europe PMC", () => {
+    const items = load("europepmc-preprints.json");
+    expect(items.length).toBeGreaterThan(0);
+    for (const i of items) {
+      expect(i?.type).toBe("preprint");
+      expect(i?.url).toMatch(/^https:\/\/europepmc\.org\/article\/PPR\//);
+      expect(i?.title).not.toMatch(/<|&lt;/);
     }
   });
 });

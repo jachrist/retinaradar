@@ -39,12 +39,13 @@ describe("PubMed", () => {
 });
 
 describe("Europe PMC", () => {
-  it("legger datofilter rundt spørringen og bruker cursorMark", () => {
+  it("filtrerer på indekseringsdato i vinduet og publiseringsdato siste 180 dager", () => {
     const u = new URL(
       buildSearchUrl('"cone-rod dystrophy"', window, { cursorMark: "*", pageSize: 100 }),
     );
     expect(u.searchParams.get("query")).toBe(
-      '("cone-rod dystrophy") AND FIRST_PDATE:[2026-10-01 TO 2026-10-31]',
+      '("cone-rod dystrophy") AND FIRST_IDATE:[2026-10-01 TO 2026-10-31]' +
+        " AND FIRST_PDATE:[2026-04-04 TO 2027-10-31]",
     );
     expect(Object.fromEntries(u.searchParams)).toMatchObject({
       format: "json",

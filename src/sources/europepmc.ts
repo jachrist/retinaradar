@@ -1,10 +1,13 @@
 /**
  * Europe PMC REST /search: artikler og preprints (bioRxiv/medRxiv m.fl., source "PPR").
  *
- * MERK: Parametere og feltnavn (resultType=core, cursorMark, FIRST_PDATE-filteret og
- * resultatfeltene) er skrevet etter kjennskap til dokumentasjonen
- * (https://europepmc.org/RestfulWebService), men ikke verifisert mot live API i dette
- * miljøet. Se docs/PLAN.md, «Åpne punkter».
+ * Datofilter (verifisert mot live API 2.11.2026):
+ * - FIRST_IDATE (første indekseringsdato) i vinduet fanger artikler som blir tilgjengelige
+ *   nå, også de som indekseres uker etter publisering. FIRST_PDATE alene mistet disse.
+ * - FIRST_IDATE alene ga mye støy: Gamle artikler (helt tilbake til 1990-tallet) blir
+ *   re-indeksert, typisk PMC-fulltekst. Derfor kreves i tillegg FIRST_PDATE innenfor
+ *   `publishedWithinDays` før vinduet (og inntil ett år frem, for utgavedatoer i fremtiden).
+ *   For oktober 2026 og et bredt IRD-søk: PDATE 88, IDATE 308, kombinert 154 treff.
  */
 import type { Query } from "../config/schema.js";
 import type { Item } from "../model.js";
@@ -18,17 +21,26 @@ type EuropePmcQuery = Extract<Query, { source: "europepmc" }>;
 
 export interface EuropePmcOptions {
   http?: HttpClient;
+  /** Hvor gammel en artikkel kan være (publiseringsdato) og fortsatt regnes som ny. */
+  publishedWithinDays?: number;
   maxResults?: number;
   pageSize?: number;
   delayMs?: number;
 }
 
+const DAY_MS = 86_400_000;
+
 export function buildSearchUrl(
   query: string,
   window: FetchWindow,
-  opts: { cursorMark: string; pageSize: number },
+  opts: { cursorMark: string; pageSize: number; publishedWithinDays?: number },
 ): string {
-  const dated = `(${query}) AND FIRST_PDATE:[${isoDate(window.since)} TO ${isoDate(window.until)}]`;
+  const pubFrom = new Date(window.since.getTime() - (opts.publishedWithinDays ?? 180) * DAY_MS);
+  const pubTo = new Date(window.until.getTime() + 365 * DAY_MS);
+  const dated =
+    `(${query})` +
+    ` AND FIRST_IDATE:[${isoDate(window.since)} TO ${isoDate(window.until)}]` +
+    ` AND FIRST_PDATE:[${isoDate(pubFrom)} TO ${isoDate(pubTo)}]`;
   const p = new URLSearchParams({
     query: dated,
     format: "json",
@@ -83,6 +95,7 @@ export function createEuropePmcAdapter(opts: EuropePmcOptions = {}): SourceAdapt
   const maxResults = opts.maxResults ?? 500;
   const pageSize = opts.pageSize ?? 100;
   const delayMs = opts.delayMs ?? 200;
+  const publishedWithinDays = opts.publishedWithinDays ?? 180;
 
   return {
     source: "europepmc",
@@ -90,7 +103,11 @@ export function createEuropePmcAdapter(opts: EuropePmcOptions = {}): SourceAdapt
       const items: Item[] = [];
       let cursorMark = "*";
       while (items.length < maxResults) {
-        const url = buildSearchUrl(query.query, window, { cursorMark, pageSize });
+        const url = buildSearchUrl(query.query, window, {
+          cursorMark,
+          pageSize,
+          publishedWithinDays,
+        });
         const res = await http.getJson<EuropePmcResponse>(url);
         const results = res.resultList?.result ?? [];
         for (const r of results) {

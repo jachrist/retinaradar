@@ -10,6 +10,20 @@ describe("cleanText", () => {
     );
   });
   it("tåler tom input", () => expect(cleanText(undefined)).toBe(""));
+  it("fjerner HTML-kodede tagger (Europe PMC)", () => {
+    expect(cleanText("Variants in the &lt;i&gt;UBAP1L&lt;/i&gt; gene")).toBe(
+      "Variants in the UBAP1L gene",
+    );
+  });
+  it("JATS-inline og mellomrom rundt fjernet tagg", () => {
+    expect(cleanText("for  <i>PROM1</i>  -Associated <italic>in vivo</italic>")).toBe(
+      "for PROM1-Associated in vivo",
+    );
+    expect(cleanText("<title>Background</title><p>Text</p>")).toBe("Background Text");
+  });
+  it("lar ulikheter i teksten være", () => {
+    expect(cleanText("p &lt; 0.05 and n > 3")).toBe("p < 0.05 and n > 3");
+  });
 });
 
 describe("truncate", () => {
