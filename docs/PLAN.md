@@ -17,13 +17,13 @@
 - Plassholder-HTTP-funksjon `manualRun`
 - `config/queries.json`, `config/profile.example.json`, `local.settings.example.json`
 
-## Fase 1 – kjerne uten KI (implementert, delvis verifisert)
+## Fase 1 – kjerne uten KI (implementert og verifisert)
 
 | Del                                     | Fil(er)                         | Status                                                           |
 | --------------------------------------- | ------------------------------- | ---------------------------------------------------------------- |
 | Konfig + validering, `{GENE}`-utvidelse | `src/config/`                   | ✅ testet                                                        |
 | PubMed (esearch → efetch XML)           | `src/sources/pubmed.ts`         | ✅ kjørt mot live API, tester mot ekte svar                      |
-| Europe PMC (search, cursorMark)         | `src/sources/europepmc.ts`      | ⚠️ ikke verifisert – API-et svarte 503 (nede hos dem)            |
+| Europe PMC (search, cursorMark)         | `src/sources/europepmc.ts`      | ✅ kjørt mot live API, tester mot ekte svar                      |
 | ClinicalTrials.gov v2 (/studies)        | `src/sources/clinicaltrials.ts` | ✅ verifisert mot OpenAPI-spec og live API, tester mot ekte svar |
 | Sammenslåing på tvers av kilder         | `src/pipeline/dedupe.ts`        | ✅ testet                                                        |
 | «Sett»-register + siste kjøring         | `src/storage/`                  | ✅ testet, også mot Azurite                                      |
@@ -54,12 +54,13 @@
 - **ClinicalTrials.gov:** Alle parametere finnes i OpenAPI-spesifikasjonen (`/api/oas/v2`). `filter.overallStatus` tar komma- eller pipe-separert liste, `pageToken` settes fra `nextPageToken`, og `phases` har verdiene `NA`, `EARLY_PHASE1` og `PHASE1`–`PHASE4`. `AREA[LastUpdatePostDate]RANGE[...]` snevrer inn som forventet (395 → 23 → 9 treff). Tekstfeltene er Markdown, og escaping som `\-` fjernes.
 - **Søkejustering:** `query.cond` utvides med synonymer. «macular dystrophy» traff derfor AMD, diabetisk makulaødem m.m. (59 treff på en måned). Stargardt-søket er nå bare `Stargardt` (6 relevante treff).
 
+- **Europe PMC (2.11.2026):** `FIRST_IDATE` (indeksering) i vinduet kombineres med `FIRST_PDATE` siste 180 dager. Bare publiseringsdato mistet sent indekserte artikler, og bare indekseringsdato ga mange gamle, re-indekserte artikler. For oktober og et bredt IRD-søk gir det 88 / 308 / 154 treff. Titler kan komme med HTML-kodede tagger (`&lt;i&gt;`) og sammendrag med JATS-tagger, og begge deler vaskes bort.
+
 ## Åpne punkter
 
-1. **Europe PMC:** API-et svarte 503 «temporarily unavailable» på alle forespørsler, også de enkleste. Kjør `npm run fixtures` når det er oppe igjen. Da lagres `europepmc-search.json`, og fixture-testen for Europe PMC aktiveres automatisk. Sjekk spesielt at `FIRST_PDATE`-filteret og `resultType=core` virker som antatt.
-2. **SMTP mot Gmail** og **`func start`** må prøves lokalt.
-3. **Retry med backoff** (fase 2) ville gjort 503-feil som dette mindre synlige.
-4. Merk: I Claude-skymiljøet må Node kjøres med `NODE_USE_ENV_PROXY=1` for at `fetch` skal gå via proxyen. Lokalt og i Azure trengs ikke dette.
+1. **SMTP mot Gmail** og **`func start`** må prøves lokalt.
+2. **Retry med backoff** (fase 2): Europe PMC var nede (503) i flere timer 1.11, og PubMed ga 429 fra skymiljøets delte IP.
+3. Merk: I Claude-skymiljøet må Node kjøres med `NODE_USE_ENV_PROXY=1` for at `fetch` skal gå via proxyen. Lokalt og i Azure trengs ikke dette.
 
 ## Kom i gang lokalt
 
