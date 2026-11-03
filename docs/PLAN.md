@@ -29,8 +29,8 @@
 | «Sett»-register + siste kjøring         | `src/storage/`                  | ✅ testet, også mot Azurite                                      |
 | Pipeline (vindu, idempotens, feil)      | `src/pipeline/run.ts`           | ✅ testet                                                        |
 | Varsel (norsk tekst + HTML)             | `src/notify/`                   | ✅ testet                                                        |
-| SMTP (Gmail)                            | `src/notify/notifier.ts`        | ⚠️ ikke testet mot ekte SMTP                                     |
-| Timer- og HTTP-trigger                  | `src/functions/`                | ✅ enhetstestet, `func start` ikke kjørt                         |
+| SMTP (Gmail)                            | `src/notify/notifier.ts`        | ✅ e-post mottatt fra Azure 3.11.2026                            |
+| Timer- og HTTP-trigger                  | `src/functions/`                | ✅ deployet til Azure (Flex Consumption), manualRun testet       |
 | Lokal CLI                               | `src/cli.ts`                    | ✅ kjørt mot Azurite og live API (2. kjøring: 0 nye)             |
 
 ### Hvordan det virker
@@ -58,7 +58,7 @@
 
 ## Åpne punkter
 
-1. **SMTP mot Gmail** og **`func start`** må prøves lokalt.
+1. **Bekreft idempotens i Azure:** Andre ekte kjøring skal gi `findings: 0`. Bekreft også at `weeklyRun` kjører mandag kl. 05:00 UTC.
 2. **Retry med backoff** (fase 2): Europe PMC var nede (503) i flere timer 1.11, og PubMed ga 429 fra skymiljøets delte IP.
 3. Merk: I Claude-skymiljøet må Node kjøres med `NODE_USE_ENV_PROXY=1` for at `fetch` skal gå via proxyen. Lokalt og i Azure trengs ikke dette.
 
