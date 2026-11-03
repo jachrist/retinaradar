@@ -180,9 +180,12 @@ som tekst, men sender ingenting og lagrer ingenting:
 ```bash
 KEY=$(az functionapp function keys list --resource-group "$RG" --name "$APP" \
   --function-name manualRun --query default -o tsv)
-HOST=$(az functionapp show --resource-group "$RG" --name "$APP" --query defaultHostName -o tsv)
+# Flex Consumption: defaultHostName er ofte tom; hent full URL til funksjonen i stedet.
+URL=$(az functionapp function show --resource-group "$RG" --name "$APP" \
+  --function-name manualRun --query invokeUrlTemplate -o tsv)
+echo "URL=$URL  nøkkellengde=${#KEY}"
 
-curl -s "https://${HOST}/api/manualRun?dryRun=true&code=${KEY}" | python3 -m json.tool | head -40
+curl -s -w "\nHTTP %{http_code}\n" "${URL}?dryRun=true&code=${KEY}"
 ```
 
 Forventet: `"status": "ok"`, `fetched` over 0 og `failures: []`. I `preview` ser du
@@ -200,7 +203,7 @@ Når dry run ser riktig ut, kjører du en ekte kjøring uten `dryRun`. Da sendes
 og treffene lagres som sett. Kjør den gjerne to ganger. Andre gang skal `findings` være 0.
 
 ```bash
-curl -s "https://${HOST}/api/manualRun?code=${KEY}" | python3 -m json.tool | head -20
+curl -s -w "\nHTTP %{http_code}\n" "${URL}?code=${KEY}"
 ```
 
 **Logger:** Portalen → Function App → Monitoring → Logs/Application Insights, eller
