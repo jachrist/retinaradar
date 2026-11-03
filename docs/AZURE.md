@@ -128,14 +128,85 @@ har trådt i kraft ennå, eller at hemmeligheten mangler.
 Portalen → Cost Management → Budgets → Add. Velg ressursgruppen `rg-retinaradar`, beløp
 f.eks. 50 kr/måned og varsel på 80 % til din e-post.
 
-## Deretter: deploy
+## 8. Deploy fra Cloud Shell
 
-Dette gjøres i neste steg, når du sier fra:
+Cloud Shell har Azure Functions Core Tools (`func`) og Node. Kjør fra `retinaradar`-mappen,
+med variablene fra steg 1 satt:
 
-- **Manuelt fra egen maskin:** `npm run build && func azure functionapp publish "$APP"`.
-  `.funcignore` holder `config/profile.json` og `local.settings.json` utenfor pakken.
-- **Eller GitHub Actions med OIDC** (føderert legitimasjon, ingen hemmeligheter i GitHub).
-  Krever en app-registrering med rollen «Website Contributor» på funksjonsappen.
+```bash
+git clone -b fase-0-oppsett https://github.com/jachrist/retinaradar.git   # hvis ikke gjort
+cd retinaradar
+git pull
 
-Første test etter deploy: Kall `manualRun` med `?dryRun=true` (function key finner du under
-Function App → Functions → manualRun → Function Keys). Kjør deretter én ekte kjøring.
+node -v            # 20 eller nyere holder for bygging
+func --version     # 4.x
+
+npm ci                         # alle avhengigheter, inkludert TypeScript
+npm run build                  # kompilerer til dist/
+npm prune --omit=dev           # fjerner utviklingsverktøy før opplasting
+func azure functionapp publish "$APP" --no-build
+```
+
+Med `--no-build` lastes det ferdigbygde resultatet og `node_modules` opp som det er, uten
+en ny bygging i Azure. `.funcignore` holder `config/profile.json`, `local.settings.json`,
+testene og kildekoden i TypeScript utenfor pakken.
+
+Etter publisering skal begge funksjonene vises:
+
+```
+Functions in func-retinaradar-…:
+    manualRun - [httpTrigger]
+    weeklyRun - [timerTrigger]
+```
+
+Vil du bygge videre lokalt etterpå, kjører du `npm ci` igjen for å få tilbake
+utviklingsverktøyene.
+
+**Hvis noe feiler:**
+
+- Står det `Can't find app with name`, er `$APP` tom eller feil. Sjekk med `echo $APP`.
+- Vises ingen funksjoner etter publisering, finner ikke Functions-verten koden. Sjekk at
+  `dist/src/functions/` finnes før publisering, og at `package.json` har
+  `"main": "dist/src/functions/*.js"`.
+- Hvis Flex Consumption ikke støtter Node 22 i regionen, opprett appen med
+  `--runtime-version 20`. Koden kjører på begge.
+
+## 9. Første test i Azure
+
+Hent function key og kjør en dry run. Den henter fra alle kildene og returnerer varselet
+som tekst, men sender ingenting og lagrer ingenting:
+
+```bash
+KEY=$(az functionapp function keys list --resource-group "$RG" --name "$APP" \
+  --function-name manualRun --query default -o tsv)
+HOST=$(az functionapp show --resource-group "$RG" --name "$APP" --query defaultHostName -o tsv)
+
+curl -s "https://${HOST}/api/manualRun?dryRun=true&code=${KEY}" | python3 -m json.tool | head -40
+```
+
+Forventet: `"status": "ok"`, `fetched` over 0 og `failures: []`. I `preview` ser du
+varselteksten.
+
+| Svar                                         | Betyr                                                    | Gjør                       |
+| -------------------------------------------- | -------------------------------------------------------- | -------------------------- |
+| 401                                          | Feil eller manglende `code`                              | Hent nøkkelen på nytt      |
+| 400 med «Verken TABLE_STORAGE_ACCOUNT_URL …» | App-innstillingen mangler                                | Steg 6                     |
+| 500 med `AuthorizationPermissionMismatch`    | Rollen på storage mangler eller er ikke aktiv ennå       | Steg 4, vent noen minutter |
+| `failures` med `HTTP 429` fra PubMed         | Rate limit                                               | Legg inn NCBI API-nøkkel   |
+| Ingen gen-spørringer i loggen                | `PROFILE_JSON` mangler eller Key Vault-referansen er rød | Steg 5 og 6                |
+
+Når dry run ser riktig ut, kjører du en ekte kjøring uten `dryRun`. Da sendes e-posten,
+og treffene lagres som sett. Kjør den gjerne to ganger. Andre gang skal `findings` være 0.
+
+```bash
+curl -s "https://${HOST}/api/manualRun?code=${KEY}" | python3 -m json.tool | head -20
+```
+
+**Logger:** Portalen → Function App → Monitoring → Logs/Application Insights, eller
+Log stream for direkte logging.
+
+## Senere: GitHub Actions med OIDC
+
+Automatisk deploy ved push, med føderert legitimasjon og ingen hemmeligheter i GitHub.
+Krever en app-registrering med rollen «Website Contributor» på funksjonsappen. Settes opp når
+den manuelle deployen virker.
