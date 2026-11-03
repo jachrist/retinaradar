@@ -144,10 +144,11 @@ func --version     # 4.x
 npm ci                         # alle avhengigheter, inkludert TypeScript
 npm run build                  # kompilerer til dist/
 npm prune --omit=dev           # fjerner utviklingsverktøy før opplasting
-func azure functionapp publish "$APP" --no-build
+func azure functionapp publish "$APP" --no-build --javascript
 ```
 
-Med `--no-build` lastes det ferdigbygde resultatet og `node_modules` opp som det er, uten
+`--javascript` forteller `func` at prosjektet er Node. Ellers leser den språket fra
+`local.settings.json`, som ikke finnes i Cloud Shell. Med `--no-build` lastes det ferdigbygde resultatet og `node_modules` opp som det er, uten
 en ny bygging i Azure. `.funcignore` holder `config/profile.json`, `local.settings.json`,
 testene og kildekoden i TypeScript utenfor pakken.
 
