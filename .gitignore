@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# Lokale hemmeligheter og personlig konfigurasjon – aldri i git
+local.settings.json
+config/profile.json
+.env
+
+# Azurite
+__azurite_db*.json
+__blobstorage__/
+__queuestorage__/
+.azurite/
+out/

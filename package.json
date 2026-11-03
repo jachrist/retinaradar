@@ -1,0 +1,46 @@
+{
+  "name": "retinaradar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ukentlig overvåking av forskning og kliniske studier om arvelig netthinnesykdom",
+  "type": "module",
+  "main": "dist/src/functions/*.js",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prestart": "npm run clean && npm run build",
+    "start": "func start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "once": "npm run build && node dist/src/cli.js",
+    "azurite": "azurite-table --silent --disableTelemetry --location .azurite",
+    "fixtures": "npm run build && node dist/src/tools/captureFixtures.js"
+  },
+  "dependencies": {
+    "@azure/data-tables": "^13.3.2",
+    "@azure/functions": "^4.17.0",
+    "@azure/identity": "^4.14.1",
+    "fast-xml-parser": "^5.11.2",
+    "nodemailer": "^10.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
+    "azurite": "^3.37.0",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  }
+}

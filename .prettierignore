@@ -1,0 +1,5 @@
+dist/
+coverage/
+test/fixtures/
+package-lock.json
+README.md
